@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" data-pal="green">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SDRhound — RTL-SDR receiver for Android</title>
+<meta name="description" content="SDRhound — an Android receiver for RTL-SDR dongles: wideband radio, ADS-B tracking, GSM control-channel analysis, and NOAA satellite imagery.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0d0a; --panel:#111411; --grid:#1c231c; --line:#263126;
+    --text:#f2f2f2; --dim:#7a8a7a; --dim2:#4c584c;
+    --accent:#00e676; --accent-dim:rgba(0,230,118,.14);
+    --warn:#ffb000;
+  }
+  html[data-pal="mono"]{ --accent:#e6e6e6; --accent-dim:rgba(230,230,230,.12); --bg:#101010; --panel:#141414; --grid:#1e1e1e; --line:#2a2a2a; --dim:#808080; }
+  html[data-pal="amber"]{ --accent:#ffb000; --accent-dim:rgba(255,176,0,.14); --bg:#120d05; --panel:#17130a; --grid:#26200f; --line:#332911; --dim:#8a7a5a; }
+  html[data-pal="ice"]{ --accent:#4fc3f7; --accent-dim:rgba(79,195,247,.14); --bg:#070d12; --panel:#0c141a; --grid:#17222b; --line:#1e2c38; --dim:#5e7a8a; }
+  html[data-pal="night"]{ --accent:#ff4d4d; --accent-dim:rgba(255,77,77,.14); --bg:#120909; --panel:#1a0d0d; --grid:#2a1414; --line:#3a1a1a; --dim:#7a5a5a; }
+  html[data-pal="violet"]{ --accent:#b388ff; --accent-dim:rgba(179,136,255,.14); --bg:#0f0b16; --panel:#140f1c; --grid:#211a2d; --line:#2c2340; --dim:#7a6a8a; }
+
+  *{ box-sizing:border-box; }
+  html{ background:var(--bg); color-scheme:dark; scroll-padding-top:env(safe-area-inset-top,0px); }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"JetBrains Mono", ui-monospace, "Courier New", monospace;
+    -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    transition:background .25s ease, color .25s ease;
+  }
+  a{ color:inherit; }
+  .wrap{ max-width:900px; margin:0 auto; padding:0 20px; }
+
+  /* ---- titlebar ---- */
+  .titlebar{
+    border-bottom:1px solid var(--line); padding:12px 0; position:sticky; top:0; z-index:5;
+    background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(6px);
+  }
+  .titlebar .row{ display:flex; align-items:center; gap:10px; }
+  .dots{ display:flex; gap:6px; flex-shrink:0; }
+  .dots span{ width:9px; height:9px; border-radius:50%; background:var(--line); display:block; }
+  .titlebar .path{ color:var(--dim); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .titlebar .path b{ color:var(--text); font-weight:500; }
+  .titlebar nav{ margin-left:auto; display:flex; gap:18px; font-size:12.5px; flex-shrink:0; }
+  .titlebar nav a{ text-decoration:none; color:var(--dim); }
+  .titlebar nav a:hover{ color:var(--accent); }
+
+  /* ---- hero ---- */
+  .hero{ padding:56px 0 40px; border-bottom:1px solid var(--line); }
+  .status-line{ font-size:13px; color:var(--dim); margin-bottom:28px; }
+  .status-line .ok{ color:var(--accent); }
+  .cursor{ display:inline-block; width:8px; height:14px; background:var(--accent); vertical-align:-2px; animation:blink 1s step-end infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .led-wrap{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  #led{ image-rendering:pixelated; height:52px; }
+  .led-unit{ font-size:13px; color:var(--dim); letter-spacing:.06em; }
+
+  h1{ font-size:15px; font-weight:500; color:var(--dim); margin:26px 0 10px; letter-spacing:.02em; }
+  .pitch{ font-size:17px; line-height:1.55; max-width:62ch; color:var(--text); margin:0 0 26px; }
+  .pitch b{ color:var(--text); font-weight:700; }
+
+  .cta{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:30px; }
+  .btn{
+    display:inline-block; padding:10px 16px; font:inherit; font-size:13px; font-weight:700;
+    text-decoration:none; border:1px solid var(--line); letter-spacing:.03em; cursor:pointer;
+  }
+  .btn.primary{ background:var(--accent); color:#06120a; border-color:var(--accent); }
+  .btn.ghost{ background:transparent; color:var(--text); }
+  .btn.ghost:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .pal-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .pal-row .label{ font-size:12px; color:var(--dim2); }
+  .swatch{
+    width:16px; height:16px; border:1px solid var(--line); cursor:pointer; padding:0; background:none;
+  }
+  .swatch[data-pal="mono"]{ background:#e6e6e6; }
+  .swatch[data-pal="green"]{ background:#00e676; }
+  .swatch[data-pal="amber"]{ background:#ffb000; }
+  .swatch[data-pal="ice"]{ background:#4fc3f7; }
+  .swatch[data-pal="night"]{ background:#ff4d4d; }
+  .swatch[data-pal="violet"]{ background:#b388ff; }
+  .swatch.active{ outline:1px solid var(--text); outline-offset:2px; }
+
+  /* ---- waterfall strip ---- */
+  canvas#wf{ display:block; width:100%; height:64px; border:1px solid var(--line); border-top:none; }
+
+  /* ---- mode tabs ---- */
+  .modes{ display:flex; border-bottom:1px solid var(--line); position:sticky; top:49px; background:var(--bg); z-index:4; overflow-x:auto; }
+  .modes a{
+    padding:12px 18px; font-size:12.5px; font-weight:700; letter-spacing:.04em; text-decoration:none;
+    color:var(--dim); border-right:1px solid var(--line); white-space:nowrap;
+  }
+  .modes a:hover{ color:var(--text); }
+  .modes a.on{ color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
+
+  /* ---- feature sections ---- */
+  section.mode{ padding:44px 0; border-bottom:1px solid var(--line); scroll-margin-top:96px; }
+  section.mode .tag{ font-size:12px; color:var(--dim2); margin-bottom:6px; }
+  section.mode h2{ font-size:22px; margin:0 0 14px; font-weight:700; }
+  section.mode p{ font-size:14.5px; line-height:1.7; color:var(--dim); max-width:64ch; margin:0 0 20px; }
+  section.mode p b{ color:var(--text); font-weight:600; }
+  .specs{ border-top:1px solid var(--line); }
+  .specs div{ display:flex; gap:18px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .specs dt{ flex:0 0 120px; color:var(--dim2); font-weight:700; }
+  .specs dd{ margin:0; color:var(--text); }
+
+  /* ---- warning ---- */
+  .warn{ padding:40px 0; border-bottom:1px solid var(--line); }
+  .warn .box{ border:1px solid var(--warn); padding:18px 20px; }
+  .warn .box .hd{ color:var(--warn); font-weight:700; font-size:13px; margin-bottom:10px; }
+  .warn .box p{ margin:0 0 10px; font-size:13.5px; line-height:1.7; color:var(--dim); }
+  .warn .box p:last-child{ margin-bottom:0; }
+
+  /* ---- footer ---- */
+  footer{ padding:40px 0 60px; }
+  footer .cmd{ background:var(--panel); border:1px solid var(--line); padding:16px 18px; font-size:13px; line-height:1.9; margin-bottom:24px; overflow-x:auto; }
+  footer .cmd .c{ color:var(--dim2); }
+  footer .cmd .p{ color:var(--accent); }
+  footer .meta{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--dim2); }
+  footer .meta a{ color:var(--dim2); text-decoration:underline; text-underline-offset:3px; }
+  footer .meta a:hover{ color:var(--accent); }
+
+  @media (max-width:560px){
+    .hero{ padding:40px 0 30px; }
+    #led{ height:38px; }
+    .pitch{ font-size:15.5px; }
+    .specs dt{ flex:0 0 96px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .cursor{ animation:none; opacity:1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <div class="wrap row">
+    <span class="dots"><span></span><span></span><span></span></span>
+    <span class="path">~/<b>SDRhound</b></span>
+    <nav>
+      <a href="#radio">radio</a>
+      <a href="#adsb">adsb</a>
+      <a href="#gsm">gsm</a>
+      <a href="#satellite">satellite</a>
+      <a href="https://github.com/wraith8/SDRhound">github</a>
+    </nav>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="status-line">
+      $ adb install SDRhound.apk<br>
+      $ ./connect --device RTL2832U --rate 1.92MS/s &nbsp;<span class="ok">LIVE</span><span class="cursor"></span>
+    </div>
+
+    <div class="led-wrap">
+      <canvas id="led" width="420" height="80"></canvas>
+      <span class="led-unit">MHz</span>
+    </div>
+
+    <h1>sdrhound — android receiver</h1>
+    <p class="pitch">
+      Turns a $25 RTL-SDR dongle into a <b>wideband radio</b>, an <b>ADS-B aircraft tracker</b>,
+      a <b>GSM control-channel analyzer</b>, and a <b>NOAA satellite image decoder</b> — entirely
+      on-device. No server, no account, no subscription. Everything you see was demodulated on
+      your phone in the last second.
+    </p>
+
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/wrait8/SDRhound/releases/latest">DOWNLOAD APK</a>
+      <a class="btn ghost" href="https://github.com/wrait8/SDRhound">VIEW SOURCE</a>
+    </div>
+
+    <div class="pal-row">
+      <span class="label">display:</span>
+      <button class="swatch active" data-pal="green" aria-label="Green palette"></button>
+      <button class="swatch" data-pal="amber" aria-label="Amber palette"></button>
+      <button class="swatch" data-pal="ice" aria-label="Ice palette"></button>
+      <button class="swatch" data-pal="mono" aria-label="Mono palette"></button>
+      <button class="swatch" data-pal="night" aria-label="Night palette"></button>
+      <button class="swatch" data-pal="violet" aria-label="Violet palette"></button>
+    </div>
+  </section>
+
+  <canvas id="wf" width="900" height="64"></canvas>
+
+  <nav class="modes" id="modeNav">
+    <a href="#radio" class="on">RADIO</a>
+    <a href="#adsb">ADS-B</a>
+    <a href="#gsm">GSM</a>
+    <a href="#satellite">SATELLITE</a>
+  </nav>
+
+  <section class="mode" id="radio">
+    <div class="tag">app / radio</div>
+    <h2>Wideband receiver</h2>
+    <p>
+      Tune anywhere the dongle can reach and demodulate it live: <b>WFM</b> for broadcast FM,
+      <b>NFM</b> and <b>AM</b> for two-way and aviation traffic, <b>USB/LSB</b> for HF single
+      sideband. A band-plan overlay labels common allocations as you tune past them, and a
+      squelch slider with hysteresis keeps noise quiet between transmissions.
+    </p>
+    <dl class="specs">
+      <div><dt>modes</dt><dd>WFM · NFM · AM · USB · LSB</dd></div>
+      <div><dt>bandwidth</dt><dd>1.5 kHz – 220 kHz, adjustable per mode</dd></div>
+      <div><dt>squelch</dt><dd>dB threshold, 2 dB hysteresis</dd></div>
+      <div><dt>record</dt><dd>48 kHz WAV audio, or raw IQ as .cu8</dd></div>
+      <div><dt>display</dt><dd>spectrum + waterfall, peak hold, band-plan overlay</dd></div>
+    </dl>
+  </section>
+
+  <section class="mode" id="adsb">
+    <div class="tag">app / adsb</div>
+    <h2>ADS-B aircraft tracker</h2>
+    <p>
+      Decodes 1090 MHz Mode S extended squitter directly from raw IQ — no external dump1090, no
+      network feed. Positions are resolved from paired even/odd CPR frames the way the aircraft
+      actually broadcasts them, then plotted on an offline radar display with range rings, trails,
+      callsigns and flight levels.
+    </p>
+    <dl class="specs">
+      <div><dt>decode</dt><dd>DF17/18 extended squitter, DF5/21 identity (squawk)</dd></div>
+      <div><dt>position</dt><dd>global CPR, even/odd frame pairing</dd></div>
+      <div><dt>tracked</dt><dd>callsign, altitude, speed, heading, squawk, trail</dd></div>
+      <div><dt>display</dt><dd>radar map or sortable list, tap for full history</dd></div>
+    </dl>
+  </section>
+
+  <section class="mode" id="gsm">
+    <div class="tag">app / gsm</div>
+    <h2>GSM control-channel toolkit</h2>
+    <p>
+      A passive beacon scanner finds live base stations on GSM850/900 by their FCCH tone, then a
+      soft-decision receiver chain — burst sync, deinterleave, Viterbi, Fire code — pulls BCCH/CCCH
+      messages straight off the air. Verified messages can be watched live as hex, browsed in a
+      Wireshark-style packet list, streamed out as GSMTAP, or saved straight to a <b>.pcap</b> file.
+      An IMSI/TMSI catcher and an OpenCellID-backed cell locator round out the toolkit.
+    </p>
+    <dl class="specs">
+      <div><dt>scan</dt><dd>FCCH beacon sweep across GSM850 / GSM900</dd></div>
+      <div><dt>decode</dt><dd>soft Viterbi + Fire code on BCCH/CCCH, self-calibrating AFC</dd></div>
+      <div><dt>capture</dt><dd>IMSI/TMSI catcher, live GSMTAP, recorded .pcap</dd></div>
+      <div><dt>locate</dt><dd>serving cell (MCC/MNC/LAC/CI) resolved via OpenCellID</dd></div>
+    </dl>
+  </section>
+
+  <section class="mode" id="satellite">
+    <div class="tag">app / satellite</div>
+    <h2>NOAA APT image decoder</h2>
+    <p>
+      Point a wideband antenna at the sky during a NOAA 15/18/19 pass and watch a weather-satellite
+      image build line by line as it transmits — no laptop, no SDR# needed. Each pass is a scrolling
+      live preview you can save as a PNG once it's down.
+    </p>
+    <dl class="specs">
+      <div><dt>format</dt><dd>NOAA APT, ~137 MHz NFM carrier</dd></div>
+      <div><dt>rate</dt><dd>2 lines/second, 2080 px/line</dd></div>
+      <div><dt>output</dt><dd>live scrolling preview, saved as PNG</dd></div>
+    </dl>
+  </section>
+
+  <section class="warn">
+    <div class="box">
+      <div class="hd">read before you scan</div>
+      <p>This app only <b>receives</b> — it never transmits. All features work against your own
+      RTL-SDR dongle and antenna; nothing is sent to a server except an optional OpenCellID lookup
+      you trigger yourself.</p>
+      <p>The GSM tools decode control-channel broadcasts that are, by design, sent in the clear —
+      the same signals grgsm_livemon and similar research tools have read for years. Radio
+      regulations differ by country and intercepting traffic that isn't addressed to you can be
+      restricted even when it's unencrypted. Use these features on your own test equipment or
+      where you're otherwise authorized, and check the rules where you live before you go further.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="cmd">
+      <span class="c">$</span> git clone https://github.com/wrait8/SDRhound.git<br>
+      <span class="c">$</span> cd SDRhound &amp;&amp; <span class="p">./gradlew</span> installDebug<br>
+      <span class="c">#</span> needs an RTL-SDR (R820T) dongle + USB-OTG, Android 8.0+
+    </div>
+    <div class="meta">
+      <span>MIT licensed</span>
+      <a href="https://github.com/wrait8/SDRhound">github.com/wrait8/SDRhound</a>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- palette switcher ---- */
+  var root = document.documentElement;
+  var swatches = document.querySelectorAll(".swatch");
+  swatches.forEach(function(s){
+    s.addEventListener("click", function(){
+      root.setAttribute("data-pal", s.dataset.pal);
+      swatches.forEach(function(x){ x.classList.toggle("active", x === s); });
+    });
+  });
+
+  /* ---- mode tabs: highlight on scroll ---- */
+  var sections = ["radio","adsb","gsm","satellite"].map(function(id){ return document.getElementById(id); });
+  var links = document.querySelectorAll(".modes a");
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      links.forEach(function(a){ a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id); });
+    });
+  }, { rootMargin: "-40% 0px -55% 0px" });
+  sections.forEach(function(s){ if (s) io.observe(s); });
+
+  /* ---- LED frequency readout: 5x7 bitmap font, same glyphs as the app's FrequencyDisplay ---- */
+  var GLYPHS = {
+    "0": ["01110","10001","10011","10101","11001","10001","01110"],
+    "1": ["00100","01100","00100","00100","00100","00100","01110"],
+    "2": ["01110","10001","00001","00010","00100","01000","11111"],
+    "3": ["11110","00001","00001","01110","00001","00001","11110"],
+    "4": ["00010","00110","01010","10010","11111","00010","00010"],
+    "5": ["11111","10000","11110","00001","00001","10001","01110"],
+    "6": ["00110","01000","10000","11110","10001","10001","01110"],
+    "7": ["11111","00001","00010","00100","01000","01000","01000"],
+    "8": ["01110","10001","10001","01110","10001","10001","01110"],
+    "9": ["01110","10001","10001","01111","00001","00010","01100"],
+    ".": ["00","00","00","00","00","11","11"]
+  };
+  var FREQS = ["0433.920","1090.000","0137.620","0956.400","0144.390","0027.185"];
+  var canvas = document.getElementById("led");
+  var ctx = canvas.getContext("2d");
+  var CELL = 7, GAP = 1.5, DIGIT_W = 5, DIGIT_H = 7;
+
+  function accentColor(){
+    return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#00e676";
+  }
+
+  function drawString(str){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var x = 4, accent = accentColor();
+    for (var i = 0; i < str.length; i++){
+      var ch = str[i];
+      var rows = GLYPHS[ch]; if (!rows) continue;
+      var cols = rows[0].length;
+      for (var y = 0; y < DIGIT_H; y++){
+        for (var c = 0; c < cols; c++){
+          var on = rows[y][c] === "1";
+          ctx.fillStyle = on ? accent : "rgba(255,255,255,.06)";
+          ctx.fillRect(x + c*CELL, 4 + y*CELL, CELL - GAP, CELL - GAP);
+        }
+      }
+      x += cols * CELL + CELL * 0.8;
+    }
+    canvas.width = Math.max(x + 4, 1);
+    // redraw after resize cleared it
+    drawFrame(str);
+  }
+  function drawFrame(str){
+    var x = 4, accent = accentColor();
+    for (var i = 0; i < str.length; i++){
+      var ch = str[i];
+      var rows = GLYPHS[ch]; if (!rows) continue;
+      var cols = rows[0].length;
+      for (var y = 0; y < DIGIT_H; y++){
+        for (var c = 0; c < cols; c++){
+          var on = rows[y][c] === "1";
+          ctx.fillStyle = on ? accent : "rgba(255,255,255,.06)";
+          ctx.fillRect(x + c*CELL, 4 + y*CELL, CELL - GAP, CELL - GAP);
+        }
+      }
+      x += cols * CELL + CELL * 0.8;
+    }
+  }
+
+  var fi = 0;
+  drawString(FREQS[0]);
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduceMotion){
+    setInterval(function(){
+      fi = (fi + 1) % FREQS.length;
+      drawString(FREQS[fi]);
+    }, 3200);
+  }
+  // redraw on palette change so the LED colour follows it
+  swatches.forEach(function(s){ s.addEventListener("click", function(){ drawString(FREQS[fi]); }); });
+
+  /* ---- waterfall strip: faint scrolling noise+signal texture, decorative only ---- */
+  var wf = document.getElementById("wf");
+  var wctx = wf.getContext("2d");
+  function sizeWf(){
+    var r = wf.getBoundingClientRect();
+    wf.width = Math.max(1, Math.floor(r.width));
+    wf.height = 64;
+  }
+  sizeWf();
+  window.addEventListener("resize", sizeWf);
+
+  function wfStep(){
+    var w = wf.width, h = wf.height;
+    var img = wctx.getImageData(0, 0, w, h);
+    wctx.putImageData(img, 0, -1); // scroll up by 1px (cheap: just redraw shifted)
+    var row = wctx.createImageData(w, 1);
+    var accent = accentColor();
+    var m = accent.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    var ar = m ? parseInt(m[1],16) : 0, ag = m ? parseInt(m[2],16) : 230, ab = m ? parseInt(m[3],16) : 118;
+    for (var x = 0; x < w; x++){
+      var n = Math.random();
+      var sig = Math.max(0, Math.sin(x * 0.04 + performance.now() * 0.0005) * 0.5 + Math.random()*0.15 - 0.25);
+      var v = Math.min(1, n * 0.18 + sig);
+      var idx = x * 4;
+      row.data[idx]   = ar * v;
+      row.data[idx+1] = ag * v;
+      row.data[idx+2] = ab * v;
+      row.data[idx+3] = 255;
+    }
+    wctx.putImageData(row, 0, h - 1);
+  }
+  wctx.fillStyle = "#000"; wctx.fillRect(0,0,wf.width,wf.height);
+  if (!reduceMotion){
+    setInterval(wfStep, 70);
+  }
+})();
+</script>
+</body>
+</html>
