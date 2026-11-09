@@ -56,28 +56,6 @@ cd SDRhound
 ./gradlew assembleDebug     # APK lands in app/build/outputs/apk/debug/
 ```
 
-Open the project in Android Studio for day-to-day development.
-
-## Project structure
-
-| File | What it does |
-|---|---|
-| `MainActivity.kt` | Compose UI: spectrum/waterfall view, all four mode panels, settings, dialogs |
-| `SdrEngine.kt` | rtl_tcp client, FFT + waterfall buffer, demod orchestration, GSM/ADS-B/APT state |
-| `Demodulator.kt` | WFM/NFM/AM/SSB demodulation chain, squelch, audio output |
-| `Adsb.kt` | Mode S / ADS-B decoder: DF17/18 extended squitter, DF5/21 identity, CPR position |
-| `Gsm.kt` | GSM band tables, FCCH (beacon) burst detector |
-| `Gsmverify.kt` | GSM dummy-burst pattern verifier (confirms a channel is live GSM) |
-| `Cch.kt` | GSM FEC: rate-1/2 convolutional code, Fire code, TS 05.03 interleaver |
-| `CchVerify.kt` | Full BCCH/CCCH receiver chain (burst sync → Viterbi → Fire check), GSMTAP framing |
-| `ImsiCatcher.kt` | IMSI/TMSI extraction from paging + System Information Type 3 |
-| `CellLocator.kt` | OpenCellID lookup for the GSM cell locator |
-| `Apt.kt` | NOAA APT satellite image decoder |
-| `Recorder.kt` | WAV / raw IQ / `.pcap` file recording |
-| `Bands.kt` | Reference frequency-allocation table for the band-plan overlay |
-| `Palette.kt` | The 6 UI colour palettes and waterfall colour LUTs |
-| `FrequencyDisplay.kt` | LED-style scrollable frequency digit display |
-
 ## Permissions
 
 - **USB host** — to talk to the RTL-SDR dongle
