@@ -1,0 +1,44 @@
+# ---------- build output (regenerated; the debug APK can also embed local paths) ----------
+.gradle/
+build/
+app/build/
+*.apk
+*.aab
+*.dex
+.externalNativeBuild/
+.cxx/
+
+# ---------- machine / account specific ----------
+# local.properties holds your Android SDK path (contains your username)
+local.properties
+.idea/
+*.iml
+captures/
+.DS_Store
+
+# ---------- secrets: never commit any of these ----------
+*.jks
+*.keystore
+keystore.properties
+signing.properties
+*.pem
+*.p12
+*.key
+google-services.json
+.env
+.env.*
+secrets.*
+*.secret
+
+# ---------- anything recorded while testing (other people's traffic / your location) ----------
+*.cu8
+*.cs8
+*.iq
+*.wav
+*.pcap
+*.pcapng
+*.log
+*.hprof
+
+# keep the Gradle wrapper jar (needed to build the project)
+!gradle/wrapper/gradle-wrapper.jar

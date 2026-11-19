@@ -1,0 +1,3 @@
+[submodule "app/src/main/cpp/mbelib"]
+	path = app/src/main/cpp/mbelib
+	url = https://github.com/szechyjs/mbelib
