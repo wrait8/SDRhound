@@ -1,7 +1,8 @@
 # SDRhound
 ![Banner](Images/banner.png)
 An Android receiver for RTL-SDR (RTL2832U/R820T) USB dongles: wideband radio, ADS-B aircraft
-tracking, GSM control-channel analysis(IMSI catcher also), and satellite imagery — all demodulated on-device.
+tracking, GSM control-channel analysis (including IMSI/TMSI monitoring), and satellite imagery —
+all demodulated on-device.
 No server, no account, no subscription.
 
 **[→ Project website](https://wrait8.github.io/SDRhound/)**
@@ -67,4 +68,3 @@ you are otherwise authorized, and check local law before going further.
 ## License
 
 [MIT](LICENSE)
-
